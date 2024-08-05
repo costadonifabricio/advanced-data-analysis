@@ -1,10 +1,8 @@
 import mysql.connector
 from mysql.connector import Error
 
-def create_database():
-    """Create a connection to MySQL server and create a database."""
+def create_database_and_table():
     try:
-        # Establecer la conexión al servidor MySQL
         connection = mysql.connector.connect(
             host="localhost",
             user="root",  
@@ -13,21 +11,32 @@ def create_database():
 
         if connection.is_connected():
             print("Conexión exitosa a MySQL")
-            
             cursor = connection.cursor()
             
-            # Crear la base de datos si no existe
+            # Crear la base de datos
             cursor.execute("CREATE DATABASE IF NOT EXISTS CompanyData")
-            print("Base de datos 'CompanyData' creada o ya existe")
-    
+            cursor.execute("USE CompanyData")
+            
+            # Crear la tabla si no existe
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS EmployeePerformance (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                employee_id INT,
+                department VARCHAR(255),
+                performance_score DECIMAL(5,2),
+                years_with_company INT,
+                salary DECIMAL(10,2)
+            )
+            """)
+            print("Tabla 'EmployeePerformance' creada o ya existe")
+            
     except Error as e:
-        print(f"Error al conectar o crear la base de datos: {e}")
+        print(f"Error al conectar o crear la base de datos o tabla: {e}")
     
     finally:
         if connection.is_connected():
-            # Cerrar la conexión
             connection.close()
             print("Conexión cerrada")
 
-# Llamar a la función directamente
-create_database()
+# Llama a la función directamente
+create_database_and_table()
