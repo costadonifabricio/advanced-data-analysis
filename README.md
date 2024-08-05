@@ -27,7 +27,7 @@ Este proyecto tiene como objetivo realizar un análisis avanzado de datos en una
 
 3. Instala las dependencias
 
-4. Configura la base de datos MySQL:
+4. Configura la base de datos MySQL, utilizar Xampp:
 
     - Ejecuta el script `main.py` para crear la base de datos y la tabla:
 
