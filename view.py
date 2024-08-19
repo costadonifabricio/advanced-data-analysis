@@ -1,109 +1,111 @@
 import pandas as pd
 import mysql.connector
 import matplotlib.pyplot as plt
+from mysql.connector import Error
 
-def fetch_data():
+class DatabaseManager:
+    def __init__(self, host, user, password, database):
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
+        self.connection = self.connect()
 
-    connection = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="CompanyData"
-    )
-    
-    # Definir la consulta SQL para extraer todos los datos de la tabla EmployeePerformance
-    query = "SELECT * FROM EmployeePerformance"
-    
-    # Ejecutar la consulta y almacenar los resultados en un DataFrame de pandas
-    df = pd.read_sql(query, connection)
-    
-    # Cerrar la conexión a la base de datos
-    connection.close()
-    
-    # Devolver el DataFrame con los datos
-    return df
+    def connect(self):
+        try:
+            connection = mysql.connector.connect(
+                host=self.host,
+                user=self.user,
+                password=self.password,
+                database=self.database
+            )
+            if connection.is_connected():
+                print("Conexión exitosa a MySQL")
+                return connection
+        except Error as e:
+            print(f"Error al conectar a MySQL: {e}")
+            return None
 
-# Función para analizar los datos
-def analyze_data(df):
-  
-    analysis = {}
-    
-    # Obtener una lista única de todos los departamentos en los datos
-    departments = df['department'].unique()
+    def close_connection(self):
+        if self.connection and self.connection.is_connected():
+            self.connection.close()
+            print("Conexión a MySQL cerrada.")
 
-    # Iterar sobre cada departamento
-    for dept in departments:
-        
-        dept_data = df[df['department'] == dept]
-        
-        # Calcular las estadísticas para el departamento actual y almacenarlas en el diccionario
-        analysis[dept] = {
-            'performance_score': {
-                'mean': round(float(dept_data['performance_score'].mean()), 4),
-                'median': round(float(dept_data['performance_score'].median()), 4),
-                'std': round(float(dept_data['performance_score'].std()), 4)
-            },
-            'salary': {
-                'mean': round(float(dept_data['salary'].mean()), 4),
-                'median': round(float(dept_data['salary'].median()), 4),
-                'std': round(float(dept_data['salary'].std()), 4)
-            },
-            'total_employees': dept_data.shape[0],
-            'correlation_years_performance': round(float(dept_data[['years_with_company', 'performance_score']].corr().iloc[0,1]), 4),
-            'correlation_salary_performance': round(float(dept_data[['salary', 'performance_score']].corr().iloc[0,1]), 4)
-        }
+    def fetch_data(self):
+        if not self.connection or not self.connection.is_connected():
+            print("No hay conexión a la base de datos.")
+            return pd.DataFrame()  # Devolver un DataFrame vacío en caso de error
 
-    # Devolver el diccionario con los resultados del análisis
-    return analysis
+        query = "SELECT * FROM EmployeePerformance"
+        df = pd.read_sql(query, self.connection)
+        return df
 
-# Función para crear histogramas
-def plot_histograms(df):
-    
-    departments = df['department'].unique()
-    
-    for dept in departments:
-        dept_data = df[df['department'] == dept]
-        
-        # Crear un histograma del performance_score para el departamento actual
-        plt.hist(dept_data['performance_score'], bins=20, alpha=0.7, label=dept)
-    
-    # Configurar el título y etiquetas del histograma
-    plt.title('Histograma del performance_score por departamento')
-    plt.xlabel('Performance Score')
-    plt.ylabel('Frecuencia')
-    plt.legend(loc='upper right')
-    
-    # Mostrar el histograma
-    plt.show()
+class DataAnalyzer:
+    def __init__(self, df):
+        self.df = df
 
-# Función para crear gráficos de dispersión
-def plot_scatter_plots(df):
-   
-    plt.figure()
-    plt.scatter(df['years_with_company'], df['performance_score'], alpha=0.5)
-    plt.title('Years with Company vs Performance Score')
-    plt.xlabel('Years with Company')
-    plt.ylabel('Performance Score')
-    plt.show()
+    def analyze_data(self):
+        analysis = {}
+        departments = self.df['department'].unique()
 
-    # Crear un gráfico de dispersión de salary vs performance_score
-    plt.figure()
-    plt.scatter(df['salary'], df['performance_score'], alpha=0.5)
-    plt.title('Salary vs Performance Score')
-    plt.xlabel('Salary')
-    plt.ylabel('Performance Score')
-    plt.show()
+        for dept in departments:
+            dept_data = self.df[self.df['department'] == dept]
+            analysis[dept] = {
+                'performance_score': {
+                    'mean': round(float(dept_data['performance_score'].mean()), 4),
+                    'median': round(float(dept_data['performance_score'].median()), 4),
+                    'std': round(float(dept_data['performance_score'].std()), 4)
+                },
+                'salary': {
+                    'mean': round(float(dept_data['salary'].mean()), 4),
+                    'median': round(float(dept_data['salary'].median()), 4),
+                    'std': round(float(dept_data['salary'].std()), 4)
+                },
+                'total_employees': dept_data.shape[0],
+                'correlation_years_performance': round(float(dept_data[['years_with_company', 'performance_score']].corr().iloc[0, 1]), 4),
+                'correlation_salary_performance': round(float(dept_data[['salary', 'performance_score']].corr().iloc[0, 1]), 4)
+            }
+        return analysis
 
-df = fetch_data()
+class DataVisualizer:
+    def __init__(self, df):
+        self.df = df
 
-# Analizar los datos
-analysis = analyze_data(df)
+    def plot_histograms(self):
+        departments = self.df['department'].unique()
+        for dept in departments:
+            dept_data = self.df[self.df['department'] == dept]
+            plt.hist(dept_data['performance_score'], bins=20, alpha=0.7, label=dept)
+        plt.title('Histograma del performance_score por departamento')
+        plt.xlabel('Performance Score')
+        plt.ylabel('Frecuencia')
+        plt.legend(loc='upper right')
+        plt.show()
 
-# Imprimir los resultados del análisis
+    def plot_scatter_plots(self):
+        plt.figure()
+        plt.scatter(self.df['years_with_company'], self.df['performance_score'], alpha=0.5)
+        plt.title('Years with Company vs Performance Score')
+        plt.xlabel('Years with Company')
+        plt.ylabel('Performance Score')
+        plt.show()
+
+        plt.figure()
+        plt.scatter(self.df['salary'], self.df['performance_score'], alpha=0.5)
+        plt.title('Salary vs Performance Score')
+        plt.xlabel('Salary')
+        plt.ylabel('Performance Score')
+        plt.show()
+
+# Uso de las clases
+db_manager = DatabaseManager(host="localhost", user="root", password="", database="CompanyData")
+data = db_manager.fetch_data()
+db_manager.close_connection()
+
+data_analyzer = DataAnalyzer(data)
+analysis = data_analyzer.analyze_data()
 print(analysis)
 
-# Crear y mostrar histogramas
-plot_histograms(df)
-
-# Crear y mostrar gráficos de dispersión
-plot_scatter_plots(df)
+data_visualizer = DataVisualizer(data)
+data_visualizer.plot_histograms()
+data_visualizer.plot_scatter_plots()
